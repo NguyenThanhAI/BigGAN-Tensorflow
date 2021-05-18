@@ -43,23 +43,24 @@ class BigGAN_128(object):
         self.beta2 = args.beta2
         self.moving_decay = args.moving_decay
 
-        self.custom_dataset = False
+        #self.custom_dataset = False
+#
+        #if self.dataset_name == 'mnist':
+        #    self.c_dim = 1
+        #    self.data = load_mnist()
+#
+        #elif self.dataset_name == 'cifar10':
+        #    self.c_dim = 3
+        #    self.data = load_cifar10()
+#
+        #else:
+        #    self.c_dim = 3
+        #    self.data = load_data(dataset_name=self.dataset_name)
+        #    self.custom_dataset = True
+#
+        #self.dataset_num = len(self.data)
 
-        if self.dataset_name == 'mnist':
-            self.c_dim = 1
-            self.data = load_mnist()
-
-        elif self.dataset_name == 'cifar10':
-            self.c_dim = 3
-            self.data = load_cifar10()
-
-        else:
-            self.c_dim = 3
-            self.data = load_data(dataset_name=self.dataset_name)
-            self.custom_dataset = True
-
-        self.dataset_num = len(self.data)
-
+        self.c_dim = 3
         self.sample_dir = os.path.join(self.sample_dir, self.model_dir)
         check_folder(self.sample_dir)
 
@@ -69,7 +70,7 @@ class BigGAN_128(object):
         print("# BigGAN 128")
         print("# gan type : ", self.gan_type)
         print("# dataset : ", self.dataset_name)
-        print("# dataset number : ", self.dataset_num)
+        #print("# dataset number : ", self.dataset_num)
         print("# batch_size : ", self.batch_size)
         print("# epoch : ", self.epoch)
         print("# iteration per epoch : ", self.iteration)
@@ -205,64 +206,64 @@ class BigGAN_128(object):
     ##################################################################################
 
     def build_model(self):
-        """ Graph Input """
-        # images
-        Image_Data_Class = ImageData(self.img_size, self.c_dim, self.custom_dataset)
-        inputs = tf.data.Dataset.from_tensor_slices(self.data)
-
-        gpu_device = '/gpu:0'
-        inputs = inputs.\
-            apply(shuffle_and_repeat(self.dataset_num)).\
-            apply(map_and_batch(Image_Data_Class.image_processing, self.batch_size, num_parallel_batches=16, drop_remainder=True)).\
-            apply(prefetch_to_device(gpu_device, self.batch_size))
-
-        inputs_iterator = inputs.make_one_shot_iterator()
-
-        self.inputs = inputs_iterator.get_next()
+        #""" Graph Input """
+        ## images
+        #Image_Data_Class = ImageData(self.img_size, self.c_dim, self.custom_dataset)
+        #inputs = tf.data.Dataset.from_tensor_slices(self.data)
+#
+        #gpu_device = '/gpu:0'
+        #inputs = inputs.\
+        #    apply(shuffle_and_repeat(self.dataset_num)).\
+        #    apply(map_and_batch(Image_Data_Class.image_processing, self.batch_size, num_parallel_batches=16, drop_remainder=True)).\
+        #    apply(prefetch_to_device(gpu_device, self.batch_size))
+#
+        #inputs_iterator = inputs.make_one_shot_iterator()
+#
+        #self.inputs = inputs_iterator.get_next()
 
         # noises
         self.z = tf.truncated_normal(shape=[self.batch_size, 1, 1, self.z_dim], name='random_z')
 
         """ Loss Function """
         # output of D for real images
-        real_logits = self.discriminator(self.inputs)
-
-        # output of D for fake images
+        #real_logits = self.discriminator(self.inputs)
+#
+        ## output of D for fake images
         fake_images = self.generator(self.z)
-        fake_logits = self.discriminator(fake_images, reuse=True)
-
-        if self.gan_type.__contains__('wgan') or self.gan_type == 'dragan':
-            GP = self.gradient_penalty(real=self.inputs, fake=fake_images)
-        else:
-            GP = 0
-
-        # get loss for discriminator
-        self.d_loss = discriminator_loss(self.gan_type, real=real_logits, fake=fake_logits) + GP
-
-        # get loss for generator
-        self.g_loss = generator_loss(self.gan_type, fake=fake_logits)
-
-        """ Training """
-        # divide trainable variables into a group for D and a group for G
-        t_vars = tf.trainable_variables()
-        d_vars = [var for var in t_vars if 'discriminator' in var.name]
-        g_vars = [var for var in t_vars if 'generator' in var.name]
-
-        # optimizers
-        with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
-            self.d_optim = tf.train.AdamOptimizer(self.d_learning_rate, beta1=self.beta1, beta2=self.beta2).minimize(self.d_loss, var_list=d_vars)
-
-            self.opt = MovingAverageOptimizer(tf.train.AdamOptimizer(self.g_learning_rate, beta1=self.beta1, beta2=self.beta2), average_decay=self.moving_decay)
-
-            self.g_optim = self.opt.minimize(self.g_loss, var_list=g_vars)
+        #fake_logits = self.discriminator(fake_images, reuse=True)
+#
+        #if self.gan_type.__contains__('wgan') or self.gan_type == 'dragan':
+        #    GP = self.gradient_penalty(real=self.inputs, fake=fake_images)
+        #else:
+        #    GP = 0
+#
+        ## get loss for discriminator
+        #self.d_loss = discriminator_loss(self.gan_type, real=real_logits, fake=fake_logits) + GP
+#
+        ## get loss for generator
+        #self.g_loss = generator_loss(self.gan_type, fake=fake_logits)
+#
+        #""" Training """
+        ## divide trainable variables into a group for D and a group for G
+        #t_vars = tf.trainable_variables()
+        #d_vars = [var for var in t_vars if 'discriminator' in var.name]
+        #g_vars = [var for var in t_vars if 'generator' in var.name]
+#
+        ## optimizers
+        #with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
+        #    self.d_optim = tf.train.AdamOptimizer(self.d_learning_rate, beta1=self.beta1, beta2=self.beta2).minimize(self.d_loss, var_list=d_vars)
+#
+        #    self.opt = MovingAverageOptimizer(tf.train.AdamOptimizer(self.g_learning_rate, beta1=self.beta1, beta2=self.beta2), average_decay=self.moving_decay)
+#
+        #    self.g_optim = self.opt.minimize(self.g_loss, var_list=g_vars)
 
         """" Testing """
         # for test
         self.fake_images = self.generator(self.z, is_training=False, reuse=True)
 
         """ Summary """
-        self.d_sum = tf.summary.scalar("d_loss", self.d_loss)
-        self.g_sum = tf.summary.scalar("g_loss", self.g_loss)
+        #self.d_sum = tf.summary.scalar("d_loss", self.d_loss)
+        #self.g_sum = tf.summary.scalar("g_loss", self.g_loss)
 
     ##################################################################################
     # Train
