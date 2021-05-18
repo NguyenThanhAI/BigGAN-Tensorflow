@@ -15,8 +15,7 @@ class ImageData:
         self.custom_dataset = custom_dataset
 
 
-    @staticmethod
-    def _crop(image, offset_height, offset_width, crop_height, crop_width):
+    def _crop(self, image, offset_height, offset_width, crop_height, crop_width):
         """Crops the given image using the provided offsets and sizes.
         Note that the method doesn't assume we know the input image size but it does
         assume we know the input image rank.
@@ -38,7 +37,7 @@ class ImageData:
             tf.equal(tf.rank(image), 3),
             ['Rank of image must be equal to 3.'])
         with tf.control_dependencies([rank_assertion]):
-            cropped_shape = tf.stack([crop_height, crop_width, original_shape[2]])
+            cropped_shape = tf.stack([crop_height, crop_width, self.channels])
 
         size_assertion = tf.Assert(
             tf.logical_and(
@@ -52,7 +51,7 @@ class ImageData:
         # define the crop size.
         with tf.control_dependencies([size_assertion]):
             image = tf.slice(image, offsets, cropped_shape)
-        return tf.reshape(image, cropped_shape)
+        return tf.cast(tf.reshape(image, cropped_shape), dtype=tf.float32)
 
 
     def _random_crop(self, image_list, crop_height, crop_width):
@@ -145,7 +144,7 @@ class ImageData:
         img = tf.cond(tf.logical_and(tf.greater_equal(shape[0], self.load_size), tf.greater_equal(shape[1], self.load_size)),
                       lambda : self._random_crop([x_decode], crop_height=self.load_size, crop_width=self.load_size)[0],
                       lambda : tf.image.resize_images(x_decode, [self.load_size, self.load_size]))
-        img = img.set_shape(self.load_size, self.load_size, self.channels)
+        img.set_shape([self.load_size, self.load_size, self.channels])
         img = tf.cast(img, tf.float32) / 127.5 - 1
 
         return img
